@@ -2,12 +2,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useIsFocused } from '@react-navigation/native'
 import React, { useEffect, useState } from 'react'
-import { Alert, SafeAreaView, SectionList, StatusBar, StyleSheet, Text, View } from 'react-native'
+import { Alert, Button, FlatList, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native'
 
 import OrchidCard from '@/components/OrchidCard'
-import { IOrchid, sectionList } from '@/data'
+import { IOrchid } from '@/data'
 
-const HomeScreen = () => {
+const FavoriteListScreen = () => {
   const [favoriteList, setFavoriteList] = useState<IOrchid[]>([])
   const isFocused = useIsFocused()
   const getItem = async () => {
@@ -59,33 +59,61 @@ const HomeScreen = () => {
 
   useEffect(() => {
     ;(async () => {
-      const data = await getItem()
-      setFavoriteList(data)
+      try {
+        const data = await getItem()
+        setFavoriteList(data)
+      } catch (error) {
+        console.log(error)
+      }
     })()
     return () => {}
   }, [isFocused])
 
   return (
     <SafeAreaView style={styles.container}>
-      <SectionList
-        sections={sectionList}
-        contentContainerStyle={styles.list}
-        renderSectionHeader={({ section: { name } }) => (
-          <View>
-            <Text style={styles.sectionHeader}>{name}</Text>
+      {favoriteList.length === 0 ? (
+        <View>
+          <Text style={{ fontSize: 20, color: 'darkgrey', textAlign: 'center', marginTop: '75%' }}>
+            Favorite list empty
+          </Text>
+        </View>
+      ) : (
+        <>
+          <View style={{ width: '50%', margin: 12.5 }}>
+            <Button
+              color='red'
+              onPress={() =>
+                Alert.alert('Delete confirmation', 'Are you sure you want to delete all?', [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Delete',
+                    style: 'destructive',
+                    async onPress() {
+                      await AsyncStorage.clear()
+                      setFavoriteList([])
+                    }
+                  }
+                ])
+              }
+              title='Delete all'
+            />
           </View>
-        )}
-        renderItem={({ item, index }) => (
-          <OrchidCard
-            onChangeFavList={() => handleFavoriteList(item)}
-            favorite={isInFavoriteList(item.name)}
-            image={item.image}
-            name={item.name}
-            key={index}
+          <FlatList
+            contentContainerStyle={styles.list}
+            data={favoriteList || []}
+            renderItem={({ item, index }) => (
+              <OrchidCard
+                onChangeFavList={() => handleFavoriteList(item)}
+                favorite={isInFavoriteList(item.name)}
+                image={item.image}
+                name={item.name}
+                key={index}
+              />
+            )}
+            keyExtractor={(item) => item.name}
           />
-        )}
-        keyExtractor={(item) => item.name}
-      />
+        </>
+      )}
     </SafeAreaView>
   )
 }
@@ -97,8 +125,7 @@ const styles = StyleSheet.create({
   },
   list: {
     alignItems: 'stretch',
-    justifyContent: 'center',
-    marginTop: -10
+    justifyContent: 'center'
   },
   button: {
     width: '44%',
@@ -110,13 +137,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     margin: '2%'
-  },
-  sectionHeader: {
-    fontSize: 30,
-    fontWeight: '700',
-    marginLeft: 20,
-    marginTop: 20
   }
 })
 
-export default HomeScreen
+export default FavoriteListScreen
